@@ -3,18 +3,21 @@ import sys
 
 import psutil
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QPixmap, QPainter, QBitmap, QCursor, QFont
+from PyQt5.QtGui import QPixmap, QPainter, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel
 
 
 class UI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowFlags(Qt.WindowStaysOnTopHint|Qt.Tool)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        # 放弃setMask，手动绘制背景
+        # 画布
+        # self.pix = QPixmap(200, 124)
+        # self.pix.fill(QColor(0, 0, 0, 255))
         # 设置遮罩 200px 124px
-        self.pix = QBitmap('mask.png')
-        self.resize(self.pix.size())
-        self.setMask(self.pix)
+        self.resize(200, 124)
 
         # 标记拖动状态
         self.m_drag = False
@@ -56,10 +59,22 @@ class UI(QWidget):
         # 启动线程
         self.update_thread.start()
 
+    # def paintEvent(self, event):
+    #     self.pix = QPixmap(200, 124)
+    #     self.pix.fill(Qt.transparent)
+    #     pp = QPainter(self.pix)
+    #     self.op_point = QPoint(0,0)
+    #     self.ed_point = QPoint(200,124)
+    #     pp.drawLine(self.op_point, self.ed_point)
+    #     painter = QPainter(self)
+    #     painter.drawPixmap(0,0,self.pix)
+    # self.update()
+
     # 绘制背景
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.drawPixmap(0, 0, self.pix.width(), self.pix.height(), QPixmap('background.png'))
+        pix = QPixmap('bg.png')
+        painter.drawPixmap(0, 0, pix.scaled(pix.width(), pix.height(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -141,14 +156,15 @@ class Data(QThread):
         while True:
             await asyncio.sleep(1)
             counter2 = psutil.net_io_counters()
-            self.net_up_speed = self.format_net_speed(counter2.bytes_sent - counter1.bytes_sent)
-            self.net_down_speed = self.format_net_speed(counter2.bytes_recv - counter1.bytes_recv)
+            self.net_up_speed = Data.format_net_speed(counter2.bytes_sent - counter1.bytes_sent)
+            self.net_down_speed = Data.format_net_speed(counter2.bytes_recv - counter1.bytes_recv)
             self.net_up_signal.emit(self.net_up_speed)
             self.net_down_signal.emit(self.net_down_speed)
             counter1 = counter2
 
     # 格式化网速
-    def format_net_speed(self, num):
+    @classmethod
+    def format_net_speed(cls, num):
         if type(num) == int:
             if num < 1024:
                 return str(num) + ' B/s'
