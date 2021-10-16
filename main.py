@@ -1,54 +1,66 @@
 import asyncio
+import math
 import sys
+import time
 
 import psutil
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QPixmap, QPainter, QCursor, QFont
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRect
+from PyQt5.QtGui import QPixmap, QPainter, QCursor, QFont, QColor, QPainterPath, QBrush
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel
+
+
+def w_log(msg):
+    print(time.strftime('%H:%M:%S ') + str(msg))
 
 
 class UI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
+        # Qt.WindowStaysOnTopHint |
+        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        # 放弃setMask，手动绘制背景
-        # 画布
-        # self.pix = QPixmap(200, 124)
-        # self.pix.fill(QColor(0, 0, 0, 255))
-        # 设置遮罩 200px 124px
+
+        # 设置大小 200px 124px
         self.resize(200, 124)
+        # 背景
+        self.bg = QPixmap('bg.png')
 
         # 标记拖动状态
         self.m_drag = False
         # 鼠标相对窗口位置
         self.m_drag_position = None
+        # 内存使用率
+        self.ram_percent = 80
+
+        # 内存占用圆圈
+        self.pix = QPixmap(90, 90)
+        self.pix.fill(Qt.transparent)
 
         # 内存占用
         self.ram_label = QLabel(self)
         self.ram_label.setText('00<font size="1">%</font>')
-        self.ram_font = QFont("楷体", 23, QFont.Bold)
+        self.ram_font = QFont("KaiTi", 22, QFont.Bold)
         self.ram_label.setFont(self.ram_font)
-        self.ram_label.move(15, 30)
+        self.ram_label.move(25, 35)
 
         # CPU温度
         self.cpu_tem_label = QLabel(self)
         self.cpu_tem_label.setText('00<font size="1">℃</font>')
-        self.tem_font = QFont("楷体", 14)
+        self.tem_font = QFont("KaiTi", 10)
         self.cpu_tem_label.setFont(self.tem_font)
-        self.cpu_tem_label.move(32, 75)
+        self.cpu_tem_label.move(38, 75)
 
-        self.net_font = QFont("楷体", 10)
+        self.net_font = QFont("KaiTi", 10)
         # 上传速度
         self.net_up_label = QLabel(self)
         self.net_up_label.setText('000 K/s')
         self.net_up_label.setFont(self.net_font)
-        self.net_up_label.move(110, 35)
+        self.net_up_label.move(110, 40)
         # 下载速度
         self.net_down_label = QLabel(self)
         self.net_down_label.setText('000 K/s')
         self.net_down_label.setFont(self.net_font)
-        self.net_down_label.move(110, 65)
+        self.net_down_label.move(110, 70)
 
         # 数据更新线程
         self.update_thread = Data()
@@ -59,22 +71,14 @@ class UI(QWidget):
         # 启动线程
         self.update_thread.start()
 
-    # def paintEvent(self, event):
-    #     self.pix = QPixmap(200, 124)
-    #     self.pix.fill(Qt.transparent)
-    #     pp = QPainter(self.pix)
-    #     self.op_point = QPoint(0,0)
-    #     self.ed_point = QPoint(200,124)
-    #     pp.drawLine(self.op_point, self.ed_point)
-    #     painter = QPainter(self)
-    #     painter.drawPixmap(0,0,self.pix)
-    # self.update()
-
     # 绘制背景
     def paintEvent(self, event):
         painter = QPainter(self)
-        pix = QPixmap('bg.png')
-        painter.drawPixmap(0, 0, pix.scaled(pix.width(), pix.height(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
+        # 绘制背景
+        painter.drawPixmap(0, 0, self.bg.scaled(self.bg.width(), self.bg.height(), Qt.IgnoreAspectRatio,
+                                                Qt.SmoothTransformation))
+        # 绘制圆圈
+        painter.drawPixmap(5, 17, self.pix)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -94,6 +98,20 @@ class UI(QWidget):
 
     def set_ram(self, ram_percent):
         self.ram_label.setText(f'{ram_percent}<font size="1">%</font>')
+        self.ram_percent = int(ram_percent)
+
+        # global flag
+        # if flag == 0:
+        #     a = 100
+        # else:
+        #     a = 50
+        # w_log('-' * 10)
+        # w_log('debug1')
+        painter = QPainter(self.pix)
+        self.paint_ram_circle(painter)
+        self.update()
+        # flag = 1
+        # w_log('-' * 10)
 
     def set_net_up(self, net_up_speed):
         self.net_up_label.setText(net_up_speed)
@@ -103,6 +121,60 @@ class UI(QWidget):
 
     def set_cpu_tem(self, cpu_tem):
         self.cpu_tem_label.setText(f'{cpu_tem}<font size="1">℃</font>')
+
+    def paint_ram_circle(self, painter):
+        ram_percent = int(self.ram_percent)
+
+        # 重置画布
+        cir = QRect(0, 0, 90, 90)
+        painter.setPen(Qt.NoPen)
+        brush = QBrush(QColor(233, 237, 240, 255))
+        painter.setBrush(brush)
+        painter.drawPie(cir, 0, 16 * 360)
+
+        # 绘制圆圈
+        draw_circle = QPainterPath()
+        x, y = 0, 0
+
+        # 圆 (x-40)^2 + (y-40)^2 =1600
+        # 起点
+        y0 = (1 - ram_percent * 0.01) * 80
+        # y0 = int((1 - 50 * 0.01) * 80)
+        x0 = int((-1) * (1600 - (y0 - 40) ** 2) ** 0.5 + 40)
+        draw_circle.moveTo(x0, y0)
+
+        # 正弦 y = 5sin(0.08x)+y0
+        for x in range(x0, 81 - x0):
+            y = 5 * math.sin(0.08 * x) + y0
+            draw_circle.lineTo(x, y)
+        x1, y1 = x, y
+
+        # 下半圆
+        if y1 < 40:
+            for x in range(x1, 81):
+                y = (-1) * (1600 - (x - 40) ** 2) ** 0.5 + 40
+                draw_circle.lineTo(x, y)
+            arc_op_x = 80
+        else:
+            arc_op_x = x1
+        if y0 < 40:
+            for x in range(arc_op_x, -1, -1):
+                y = (1600 - (x - 40) ** 2) ** 0.5 + 40
+                draw_circle.lineTo(x, y)
+            for x in range(0, x0 + 1):
+                y = (-1) * (1600 - (x - 40) ** 2) ** 0.5 + 40
+                draw_circle.lineTo(x, y)
+        else:
+            for x in range(arc_op_x, x0 - 1, -1):
+                y = (1600 - (x - 40) ** 2) ** 0.5 + 40
+                draw_circle.lineTo(x, y)
+
+        painter.translate(5, 5)
+        painter.setPen(Qt.NoPen)
+        brush = QBrush(QColor(194, 211, 246, 255))
+        painter.setBrush(brush)
+
+        painter.drawPath(draw_circle)
 
 
 class Data(QThread):
@@ -122,7 +194,7 @@ class Data(QThread):
         while True:
             self.ram_percent = round(psutil.virtual_memory().percent)
             self.ram_signal.emit(str(self.ram_percent))
-            await asyncio.sleep(5)
+            await asyncio.sleep(15)
 
     async def update_tem(self):
         import clr  # the pythonnet module.
@@ -145,7 +217,7 @@ class Data(QThread):
             else:
                 self.cpu_tem = 0
             self.cpu_tem_signal.emit(str(round(self.cpu_tem)))
-            await asyncio.sleep(5)
+            await asyncio.sleep(60)
 
     # 进程信息
     # for p in psutil.process_iter(['memory_percent', 'name']):
@@ -153,11 +225,12 @@ class Data(QThread):
 
     async def update_net(self):
         counter1 = psutil.net_io_counters()
+        interval = 3
         while True:
-            await asyncio.sleep(1)
+            await asyncio.sleep(interval)
             counter2 = psutil.net_io_counters()
-            self.net_up_speed = Data.format_net_speed(counter2.bytes_sent - counter1.bytes_sent)
-            self.net_down_speed = Data.format_net_speed(counter2.bytes_recv - counter1.bytes_recv)
+            self.net_up_speed = Data.format_net_speed((counter2.bytes_sent - counter1.bytes_sent) / interval)
+            self.net_down_speed = Data.format_net_speed((counter2.bytes_recv - counter1.bytes_recv) / interval)
             self.net_up_signal.emit(self.net_up_speed)
             self.net_down_signal.emit(self.net_down_speed)
             counter1 = counter2
@@ -165,17 +238,14 @@ class Data(QThread):
     # 格式化网速
     @classmethod
     def format_net_speed(cls, num):
-        if type(num) == int:
-            if num < 1024:
-                return str(num) + ' B/s'
-            elif num < 1048576:
-                return str(round(num / 1024)) + ' K/s'
-            elif num < 1073741824:
-                return str(round(num / 1048576)) + ' M/s'
-            else:
-                return str(round(num / 1073741824)) + ' G/s'
+        if num < 1024:
+            return str(round(num)) + ' B/s'
+        elif num < 1048576:
+            return str(round(num / 1024)) + ' K/s'
+        elif num < 1073741824:
+            return str(round(num / 1048576)) + ' M/s'
         else:
-            return 'xx'
+            return str(round(num / 1073741824)) + ' G/s'
 
     async def gather_tasks(self):
         await asyncio.gather(self.update_ram(), self.update_net(), self.update_tem())
