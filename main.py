@@ -1,7 +1,6 @@
 import asyncio
 import math
 import sys
-import time
 
 import psutil
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRect
@@ -9,8 +8,8 @@ from PyQt5.QtGui import QPixmap, QPainter, QCursor, QFont, QColor, QPainterPath,
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel
 
 
-def w_log(msg):
-    print(time.strftime('%H:%M:%S ') + str(msg))
+# def w_log(msg):
+#     print(time.strftime('%H:%M:%S ') + str(msg))
 
 
 class UI(QWidget):
@@ -23,7 +22,8 @@ class UI(QWidget):
         # 设置大小 200px 124px
         self.resize(200, 124)
         # 背景
-        self.bg = QPixmap('bg.png')
+        base_path = getattr(sys, '_MEIPASS', '.') + '/'
+        self.bg = QPixmap(base_path + 'bg.png')
 
         # 窗口置顶状态
         self.is_top = False
@@ -81,8 +81,10 @@ class UI(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         # 绘制背景
-        painter.drawPixmap(0, 0, self.bg.scaled(self.bg.width(), self.bg.height(), Qt.IgnoreAspectRatio,
-                                                Qt.SmoothTransformation))
+        # painter.drawPixmap(0, 0, self.bg.scaled(self.bg.width(), self.bg.height(), Qt.IgnoreAspectRatio,
+        #                                         Qt.SmoothTransformation))
+        painter.drawPixmap(0, 0, self.bg)
+
         # 绘制圆圈
         painter.drawPixmap(5, 17, self.pix)
 
@@ -222,7 +224,7 @@ class Data(QThread):
         while True:
             self.ram_percent = round(psutil.virtual_memory().percent)
             self.ram_signal.emit(self.ram_percent)
-            await asyncio.sleep(15)
+            await asyncio.sleep(5)
 
     async def update_tem(self):
         import clr  # the pythonnet module.
@@ -245,7 +247,7 @@ class Data(QThread):
             else:
                 self.cpu_tem = 0
             self.cpu_tem_signal.emit(round(self.cpu_tem))
-            await asyncio.sleep(60)
+            await asyncio.sleep(30)
 
     # 进程信息
     # for p in psutil.process_iter(['memory_percent', 'name']):
@@ -253,7 +255,7 @@ class Data(QThread):
 
     async def update_net(self):
         counter1 = psutil.net_io_counters()
-        interval = 3
+        interval = 2
         while True:
             await asyncio.sleep(interval)
             counter2 = psutil.net_io_counters()
