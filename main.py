@@ -25,6 +25,8 @@ class UI(QWidget):
         # 背景
         self.bg = QPixmap('bg.png')
 
+        # 窗口置顶状态
+        self.is_top = False
         # 标记拖动状态
         self.m_drag = False
         # 鼠标相对窗口位置
@@ -41,6 +43,7 @@ class UI(QWidget):
         self.ram_label.setText('00<font size="1">%</font>')
         self.ram_font = QFont("KaiTi", 22, QFont.Bold)
         self.ram_label.setFont(self.ram_font)
+        self.ram_label.setStyleSheet('color: #3c4c68;')
         self.ram_label.move(25, 35)
 
         # CPU温度
@@ -48,6 +51,7 @@ class UI(QWidget):
         self.cpu_tem_label.setText('00<font size="1">℃</font>')
         self.tem_font = QFont("KaiTi", 10)
         self.cpu_tem_label.setFont(self.tem_font)
+        self.cpu_tem_label.setStyleSheet('color: #3c4c68;')
         self.cpu_tem_label.move(38, 75)
 
         self.net_font = QFont("KaiTi", 10)
@@ -55,11 +59,13 @@ class UI(QWidget):
         self.net_up_label = QLabel(self)
         self.net_up_label.setText('000 K/s')
         self.net_up_label.setFont(self.net_font)
+        self.net_up_label.setStyleSheet('color: #3c4c68;')
         self.net_up_label.move(110, 40)
         # 下载速度
         self.net_down_label = QLabel(self)
         self.net_down_label.setText('000 K/s')
         self.net_down_label.setFont(self.net_font)
+        self.net_down_label.setStyleSheet('color: #3c4c68;')
         self.net_down_label.move(110, 70)
 
         # 数据更新线程
@@ -86,6 +92,16 @@ class UI(QWidget):
             self.m_drag_position = event.globalPos() - self.pos()
             event.accept()
             self.setCursor(QCursor(Qt.OpenHandCursor))
+        elif event.button() == Qt.RightButton:
+            # 窗口置顶与取消置顶
+            if self.is_top:
+                self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+                self.is_top = False
+                self.show()
+            else:
+                self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+                self.is_top = True
+                self.show()
 
     def mouseMoveEvent(self, q_mouse_event):
         if Qt.LeftButton and self.m_drag:
@@ -95,6 +111,10 @@ class UI(QWidget):
     def mouseReleaseEvent(self, q_mouse_event):
         self.m_drag = False
         self.setCursor(QCursor(Qt.ArrowCursor))
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.destroy()
 
     def set_ram(self, ram_percent):
         self.ram_label.setText(f'{ram_percent}<font size="1">%</font>')
@@ -120,6 +140,14 @@ class UI(QWidget):
         self.net_down_label.setText(net_down_speed)
 
     def set_cpu_tem(self, cpu_tem):
+        # 设置温度标签颜色
+        if cpu_tem < 45:
+            self.cpu_tem_label.setStyleSheet('color: #3c4c68;')
+        elif cpu_tem < 65:
+            self.cpu_tem_label.setStyleSheet('color: #ec8f6a;')
+        else:
+            self.cpu_tem_label.setStyleSheet('color: #ef4b4b;')
+
         self.cpu_tem_label.setText(f'{cpu_tem}<font size="1">℃</font>')
 
     def paint_ram_circle(self, painter):
