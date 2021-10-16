@@ -98,7 +98,7 @@ class UI(QWidget):
 
     def set_ram(self, ram_percent):
         self.ram_label.setText(f'{ram_percent}<font size="1">%</font>')
-        self.ram_percent = int(ram_percent)
+        self.ram_percent = ram_percent
 
         # global flag
         # if flag == 0:
@@ -123,7 +123,7 @@ class UI(QWidget):
         self.cpu_tem_label.setText(f'{cpu_tem}<font size="1">℃</font>')
 
     def paint_ram_circle(self, painter):
-        ram_percent = int(self.ram_percent)
+        ram_percent = self.ram_percent
 
         # 重置画布
         cir = QRect(0, 0, 90, 90)
@@ -178,10 +178,10 @@ class UI(QWidget):
 
 
 class Data(QThread):
-    ram_signal = pyqtSignal(str)
+    ram_signal = pyqtSignal(int)
     net_up_signal = pyqtSignal(str)
     net_down_signal = pyqtSignal(str)
-    cpu_tem_signal = pyqtSignal(str)
+    cpu_tem_signal = pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
@@ -193,7 +193,7 @@ class Data(QThread):
     async def update_ram(self):
         while True:
             self.ram_percent = round(psutil.virtual_memory().percent)
-            self.ram_signal.emit(str(self.ram_percent))
+            self.ram_signal.emit(self.ram_percent)
             await asyncio.sleep(15)
 
     async def update_tem(self):
@@ -216,7 +216,7 @@ class Data(QThread):
                     break
             else:
                 self.cpu_tem = 0
-            self.cpu_tem_signal.emit(str(round(self.cpu_tem)))
+            self.cpu_tem_signal.emit(round(self.cpu_tem))
             await asyncio.sleep(60)
 
     # 进程信息
