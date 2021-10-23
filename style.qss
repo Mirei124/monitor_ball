@@ -1,0 +1,23 @@
+QMenu {
+  width: 100px;
+  padding: 5px 1px 1px;
+  border-radius: 6px;
+  background-color: rgb(234, 238, 241);
+}
+QMenu::item {
+  margin: 0px 5px 5px;
+  padding: 3px;
+  color: rgb(60, 76, 104);
+  background-color: transparent;
+}
+QMenu::item:hover {
+  background-color: rgb(194, 211, 246);
+  border-radius: 6px;
+}
+QMenu::item:pressed {
+  background-color: rgb(194, 211, 246);
+  border-radius: 6px;
+}
+QLabel#1{
+color:red;
+}
