@@ -1,5 +1,6 @@
 import asyncio
 import math
+import os
 import sys
 
 import psutil
@@ -23,6 +24,18 @@ class UI(QWidget):
 
         # 设置大小 200px 124px
         self.resize(200, 124)
+
+        # 设置位置
+        try:
+            with open(os.getenv('APPDATA') + '\\' + 'monitor.txt', 'r') as fp:
+                pos_x = int(fp.readline())
+                pos_y = int(fp.readline())
+                self.move(pos_x, pos_y)
+        except FileNotFoundError:
+            pass
+        except ValueError:
+            fp.close()
+
         # 背景
         self.bg = QPixmap(base_path + 'bg.png')
 
@@ -137,6 +150,9 @@ class UI(QWidget):
             self.show()
 
     def app_quit(self):
+        with open(os.getenv('APPDATA') + '\\' + 'monitor.txt', 'w') as fp:
+            pos = str(self.x()) + '\n' + str(self.y())
+            fp.write(pos)
         self.destroy()
 
     def set_ram(self, ram_percent):
