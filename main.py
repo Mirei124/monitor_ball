@@ -5,7 +5,9 @@ import sys
 import psutil
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRect
 from PyQt5.QtGui import QPixmap, QPainter, QCursor, QFont, QColor, QPainterPath, QBrush
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMenu, QAction
+
+base_path = getattr(sys, '_MEIPASS', '.') + '/'
 
 
 # def w_log(msg):
@@ -22,7 +24,6 @@ class UI(QWidget):
         # 设置大小 200px 124px
         self.resize(200, 124)
         # 背景
-        base_path = getattr(sys, '_MEIPASS', '.') + '/'
         self.bg = QPixmap(base_path + 'bg.png')
 
         # 窗口置顶状态
@@ -68,6 +69,22 @@ class UI(QWidget):
         self.net_down_label.setStyleSheet('color: #3c4c68;')
         self.net_down_label.move(110, 70)
 
+        # 右键菜单
+        self.main_menu = QMenu()
+
+        self.top_act = QAction('置顶', self)
+        self.exit_act = QAction('退出', self)
+
+        self.main_menu.addAction(self.top_act)
+        self.main_menu.addAction(self.exit_act)
+
+        self.top_act.triggered.connect(self.set_top)
+        self.exit_act.triggered.connect(self.app_quit)
+
+        # 加载qss
+        with open(base_path + 'style.qss', 'r') as fp:
+            self.main_menu.setStyleSheet(fp.read())
+
         # 数据更新线程
         self.update_thread = Data()
         self.update_thread.ram_signal.connect(self.set_ram)
@@ -94,16 +111,6 @@ class UI(QWidget):
             self.m_drag_position = event.globalPos() - self.pos()
             event.accept()
             self.setCursor(QCursor(Qt.OpenHandCursor))
-        elif event.button() == Qt.RightButton:
-            # 窗口置顶与取消置顶
-            if self.is_top:
-                self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
-                self.is_top = False
-                self.show()
-            else:
-                self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-                self.is_top = True
-                self.show()
 
     def mouseMoveEvent(self, q_mouse_event):
         if Qt.LeftButton and self.m_drag:
@@ -114,9 +121,23 @@ class UI(QWidget):
         self.m_drag = False
         self.setCursor(QCursor(Qt.ArrowCursor))
 
-    def mouseDoubleClickEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.destroy()
+    def contextMenuEvent(self, event):
+        self.main_menu.exec_(QCursor.pos())
+
+    def set_top(self):
+        if self.is_top:
+            self.top_act.setText('置顶')
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+            self.is_top = False
+            self.show()
+        else:
+            self.top_act.setText('取消置顶')
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+            self.is_top = True
+            self.show()
+
+    def app_quit(self):
+        self.destroy()
 
     def set_ram(self, ram_percent):
         self.ram_label.setText(f'{ram_percent}<font size="1">%</font>')
