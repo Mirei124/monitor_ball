@@ -54,6 +54,7 @@ class UI(QWidget):
 
         # 内存占用
         self.ram_label = QLabel(self)
+        self.ram_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.ram_label.setText('00<font size="1">%</font>')
         self.ram_font = QFont("KaiTi", 22, QFont.Bold)
         self.ram_label.setFont(self.ram_font)
@@ -62,6 +63,7 @@ class UI(QWidget):
 
         # CPU温度
         self.cpu_tem_label = QLabel(self)
+        self.cpu_tem_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.cpu_tem_label.setText('00<font size="1">℃</font>')
         self.tem_font = QFont("KaiTi", 10)
         self.cpu_tem_label.setFont(self.tem_font)
@@ -71,12 +73,14 @@ class UI(QWidget):
         self.net_font = QFont("KaiTi", 10)
         # 上传速度
         self.net_up_label = QLabel(self)
+        self.net_up_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.net_up_label.setText('000 K/s')
         self.net_up_label.setFont(self.net_font)
         self.net_up_label.setStyleSheet('color: #3c4c68;')
         self.net_up_label.move(110, 40)
         # 下载速度
         self.net_down_label = QLabel(self)
+        self.net_down_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.net_down_label.setText('000 K/s')
         self.net_down_label.setFont(self.net_font)
         self.net_down_label.setStyleSheet('color: #3c4c68;')
